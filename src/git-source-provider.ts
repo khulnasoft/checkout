@@ -9,10 +9,7 @@ import * as path from 'path'
 import * as refHelper from './ref-helper'
 import * as stateHelper from './state-helper'
 import * as urlHelper from './url-helper'
-import {
-  MinimumGitSparseCheckoutVersion,
-  IGitCommandManager
-} from './git-command-manager'
+import {IGitCommandManager} from './git-command-manager'
 import {IGitSourceSettings} from './git-source-settings'
 
 export async function getSource(settings: IGitSourceSettings): Promise<void> {
@@ -212,11 +209,7 @@ export async function getSource(settings: IGitSourceSettings): Promise<void> {
 
     // Sparse checkout
     if (!settings.sparseCheckout) {
-      let gitVersion = await git.version()
-      // no need to disable sparse-checkout if the installed git runtime doesn't even support it.
-      if (gitVersion.checkMinimum(MinimumGitSparseCheckoutVersion)) {
-        await git.disableSparseCheckout()
-      }
+      await git.disableSparseCheckout()
     } else {
       core.startGroup('Setting up sparse checkout')
       if (settings.sparseCheckoutConeMode) {
@@ -261,8 +254,7 @@ export async function getSource(settings: IGitSourceSettings): Promise<void> {
     const commitInfo = await git.log1()
 
     // Log commit sha
-    const commitSHA = await git.log1('--format=%H')
-    core.setOutput('commit', commitSHA.trim())
+    await git.log1("--format='%H'")
 
     // Check for incorrect pull request merge commit
     await refHelper.checkCommitInfo(
