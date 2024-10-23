@@ -414,10 +414,12 @@ class GitCommandManager {
     // which causes the update to fail.
     // If so, create an empty commit first.
     await this.execGit([
-      'submodule', 'foreach', '--recursive',
+      'submodule',
+      'foreach',
+      '--recursive',
       'git rev-parse HEAD 2>/dev/null || git -c user.name="dummy" -c user.email="dummy@example.com" commit -m "empty commit" --allow-empty'
-    ]);
-    
+    ])
+
     const args = ['-c', 'protocol.version=2']
     args.push('submodule', 'update', '--init', '--force')
     if (fetchDepth > 0) {
