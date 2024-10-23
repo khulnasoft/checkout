@@ -91,16 +91,16 @@ export function fileExistsSync(path: string): boolean {
  * @returns A list of file paths,
  */
 export async function readdirRecursive(dir: string): Promise<string[]> {
-  const files = await fs.promises.readdir(dir);
-  const result: string[] = [];
+  const files = await fs.promises.readdir(dir)
+  const result: string[] = []
   for (const file of files) {
-    const filePath = path.join(dir, file);
-    const stat = await fs.promises.stat(filePath);
+    const filePath = path.join(dir, file)
+    const stat = await fs.promises.stat(filePath)
     if (stat.isDirectory()) {
-      result.push(...(await readdirRecursive(filePath)));
+      result.push(...(await readdirRecursive(filePath)))
     } else {
-      result.push(filePath);
+      result.push(filePath)
     }
   }
-  return result;
+  return result
 }

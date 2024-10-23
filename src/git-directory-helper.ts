@@ -42,7 +42,7 @@ export async function prepareExistingDirectory(
         lockPaths.push(file)
       }
     }
-    
+
     for (const lockPath of lockPaths) {
       try {
         await io.rmRF(lockPath)
