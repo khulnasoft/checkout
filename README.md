@@ -62,11 +62,6 @@ Please refer to the [release page](https://github.com/actions/checkout/releases/
     # Default: true
     ssh-strict: ''
 
-    # The user to use when connecting to the remote SSH host. By default 'git' is
-    # used.
-    # Default: git
-    ssh-user: ''
-
     # Whether to configure the token or SSH key with the local git config
     # Default: true
     persist-credentials: ''
@@ -279,14 +274,12 @@ jobs:
       - uses: actions/checkout@v4
       - run: |
           date > generated.txt
-          # Note: the following account information will not work on GHES
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name github-actions
+          git config user.email github-actions@github.com
           git add .
           git commit -m "generated"
           git push
 ```
-*NOTE:* The user email is `{user.id}+{user.login}@users.noreply.github.com`. See users API: https://api.github.com/users/github-actions%5Bbot%5D
 
 # License
 

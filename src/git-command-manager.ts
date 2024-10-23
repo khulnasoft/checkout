@@ -11,9 +11,7 @@ import {GitVersion} from './git-version'
 
 // Auth header not supported before 2.9
 // Wire protocol v2 not supported before 2.18
-// sparse-checkout not [well-]supported before 2.28 (see https://github.com/actions/checkout/issues/1386)
 export const MinimumGitVersion = new GitVersion('2.18')
-export const MinimumGitSparseCheckoutVersion = new GitVersion('2.28')
 
 export interface IGitCommandManager {
   branchDelete(remote: boolean, branch: string): Promise<void>
@@ -62,7 +60,6 @@ export interface IGitCommandManager {
   tryDisableAutomaticGarbageCollection(): Promise<boolean>
   tryGetFetchUrl(): Promise<string>
   tryReset(): Promise<boolean>
-  version(): Promise<GitVersion>
 }
 
 export async function createCommandManager(
@@ -86,7 +83,6 @@ class GitCommandManager {
   private lfs = false
   private doSparseCheckout = false
   private workingDirectory = ''
-  private gitVersion: GitVersion = new GitVersion()
 
   // Private constructor; use createCommandManager()
   private constructor() {}
@@ -178,8 +174,6 @@ class GitCommandManager {
 
   async disableSparseCheckout(): Promise<void> {
     await this.execGit(['sparse-checkout', 'disable'])
-    // Disabling 'sparse-checkout` leaves behind an undesirable side-effect in config (even in a pristine environment).
-    await this.tryConfigUnset('extensions.worktreeConfig', false)
   }
 
   async sparseCheckout(sparseCheckout: string[]): Promise<void> {
@@ -410,6 +404,14 @@ class GitCommandManager {
   }
 
   async submoduleUpdate(fetchDepth: number, recursive: boolean): Promise<void> {
+    // Sometimes the submodule can get in a state where there is no commit,
+    // which causes the update to fail.
+    // If so, create an empty commit first.
+    await this.execGit([
+      'submodule', 'foreach', '--recursive',
+      'git rev-parse HEAD 2>/dev/null || git -c user.name="dummy" -c user.email="dummy@example.com" commit -m "empty commit" --allow-empty'
+    ]);
+
     const args = ['-c', 'protocol.version=2']
     args.push('submodule', 'update', '--init', '--force')
     if (fetchDepth > 0) {
@@ -484,10 +486,6 @@ class GitCommandManager {
   async tryReset(): Promise<boolean> {
     const output = await this.execGit(['reset', '--hard', 'HEAD'], true)
     return output.exitCode === 0
-  }
-
-  async version(): Promise<GitVersion> {
-    return this.gitVersion
   }
 
   static async createCommandManager(
@@ -566,23 +564,23 @@ class GitCommandManager {
 
     // Git version
     core.debug('Getting git version')
-    this.gitVersion = new GitVersion()
+    let gitVersion = new GitVersion()
     let gitOutput = await this.execGit(['version'])
     let stdout = gitOutput.stdout.trim()
     if (!stdout.includes('\n')) {
       const match = stdout.match(/\d+\.\d+(\.\d+)?/)
       if (match) {
-        this.gitVersion = new GitVersion(match[0])
+        gitVersion = new GitVersion(match[0])
       }
     }
-    if (!this.gitVersion.isValid()) {
+    if (!gitVersion.isValid()) {
       throw new Error('Unable to determine git version')
     }
 
     // Minimum git version
-    if (!this.gitVersion.checkMinimum(MinimumGitVersion)) {
+    if (!gitVersion.checkMinimum(MinimumGitVersion)) {
       throw new Error(
-        `Minimum required git version is ${MinimumGitVersion}. Your git ('${this.gitPath}') is ${this.gitVersion}`
+        `Minimum required git version is ${MinimumGitVersion}. Your git ('${this.gitPath}') is ${gitVersion}`
       )
     }
 
@@ -616,14 +614,16 @@ class GitCommandManager {
 
     this.doSparseCheckout = doSparseCheckout
     if (this.doSparseCheckout) {
-      if (!this.gitVersion.checkMinimum(MinimumGitSparseCheckoutVersion)) {
+      // The `git sparse-checkout` command was introduced in Git v2.25.0
+      const minimumGitSparseCheckoutVersion = new GitVersion('2.25')
+      if (!gitVersion.checkMinimum(minimumGitSparseCheckoutVersion)) {
         throw new Error(
-          `Minimum Git version required for sparse checkout is ${MinimumGitSparseCheckoutVersion}. Your git ('${this.gitPath}') is ${this.gitVersion}`
+          `Minimum Git version required for sparse checkout is ${minimumGitSparseCheckoutVersion}. Your git ('${this.gitPath}') is ${gitVersion}`
         )
       }
     }
     // Set the user agent
-    const gitHttpUserAgent = `git/${this.gitVersion} (github-actions-checkout)`
+    const gitHttpUserAgent = `git/${gitVersion} (github-actions-checkout)`
     core.debug(`Set git useragent to: ${gitHttpUserAgent}`)
     this.gitEnv['GIT_HTTP_USER_AGENT'] = gitHttpUserAgent
   }
