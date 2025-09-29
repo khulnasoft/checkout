@@ -35,9 +35,18 @@ export async function prepareExistingDirectory(
       path.join(repositoryPath, '.git', 'index.lock'),
       path.join(repositoryPath, '.git', 'shallow.lock')
     ]
+    const lockDir = path.join(repositoryPath, '.git')
+    
+    for (const file of await fsHelper.readdirRecursive(lockDir)) {
+      if (file.endsWith('index.lock') || file.endsWith('shallow.lock')) {
+        lockPaths.push(file)
+      }
+    }
+
     for (const lockPath of lockPaths) {
       try {
         await io.rmRF(lockPath)
+        core.info(`Deleted '${lockPath}'`)
       } catch (error) {
         core.debug(
           `Unable to delete '${lockPath}'. ${(error as any)?.message ?? error}`
