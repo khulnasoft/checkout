@@ -1,6 +1,5 @@
 module.exports = {
   clearMocks: true,
-  fakeTimers: {},
   moduleFileExtensions: ['js', 'ts'],
   testEnvironment: 'node',
   testMatch: ['**/*.test.ts'],
