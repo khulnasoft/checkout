@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KhulnaSoft Development Space Engine</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="https://unpkg.com/alpinejs@3.13.5/dist/cdn.min.js" defer></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 2rem;
+            max-width: 1200px;
+            width: 90%;
+            margin: 2rem;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .header h1 {
+            color: #2d3748;
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header p {
+            color: #718096;
+            font-size: 1.1rem;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .status-card {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 2px solid #e2e8f0;
+            transition: all 0.3s ease;
+        }
+
+        .status-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+
+        .status-card.engine {
+            border-color: #4299e1;
+            background: linear-gradient(135deg, #ebf8ff, #f7fafc);
+        }
+
+        .status-card.repositories {
+            border-color: #38a169;
+            background: linear-gradient(135deg, #f0fff4, #f7fafc);
+        }
+
+        .status-card.ai {
+            border-color: #9f7aea;
+            background: linear-gradient(135deg, #faf5ff, #f7fafc);
+        }
+
+        .status-card.workflows {
+            border-color: #ed8936;
+            background: linear-gradient(135deg, #fffaf0, #f7fafc);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .card-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 1rem;
+            font-size: 1.5rem;
+        }
+
+        .engine .card-icon {
+            background: #4299e1;
+            color: white;
+        }
+
+        .repositories .card-icon {
+            background: #38a169;
+            color: white;
+        }
+
+        .ai .card-icon {
+            background: #9f7aea;
+            color: white;
+        }
+
+        .workflows .card-icon {
+            background: #ed8936;
+            color: white;
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .card-status {
+            margin-top: 0.5rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            display: inline-block;
+        }
+
+        .status-healthy {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .status-stopped {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+
+        .status-loading {
+            background: #bee3f8;
+            color: #2a4365;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .metric {
+            background: white;
+            padding: 0.75rem;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .metric-name {
+            font-size: 0.875rem;
+            color: #718096;
+            margin-bottom: 0.25rem;
+        }
+
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-bottom: 2rem;
+        }
+
+        .btn {
+            padding: 0.75rem 2rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: #f7fafc;
+            color: #4a5568;
+            border: 2px solid #e2e8f0;
+        }
+
+        .btn-secondary:hover {
+            background: #edf2f7;
+        }
+
+        .logs {
+            background: #2d3748;
+            color: #e2e8f0;
+            border-radius: 8px;
+            padding: 1rem;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.875rem;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .log-entry {
+            margin-bottom: 0.5rem;
+            padding: 0.25rem 0;
+            border-bottom: 1px solid #4a5568;
+        }
+
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+
+        .log-time {
+            color: #a0aec0;
+            margin-right: 1rem;
+        }
+
+        .log-level {
+            margin-right: 1rem;
+            font-weight: 500;
+        }
+
+        .log-level.error {
+            color: #fc8181;
+        }
+
+        .log-level.warn {
+            color: #f6e05e;
+        }
+
+        .log-level.info {
+            color: #63b3ed;
+        }
+
+        .log-level.debug {
+            color: #b794f6;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container" x-data="dashboard()">
+        <div class="header">
+            <h1>🚀 KhulnaSoft Development Space Engine</h1>
+            <p>AI-Driven Repository Management and Maintenance Platform</p>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-primary" @click="startEngine()" :disabled="loading">
+                <span x-show="!loading">Start Engine</span>
+                <span x-show="loading" class="loading"></span>
+            </button>
+            <button class="btn btn-secondary" @click="stopEngine()" :disabled="!running">
+                Stop Engine
+            </button>
+            <button class="btn btn-secondary" @click="refreshData()">
+                Refresh Data
+            </button>
+        </div>
+
+        <div class="status-grid">
+            <div class="status-card engine" x-show="engineStatus">
+                <div class="card-header">
+                    <div class="card-icon">🚀</div>
+                    <div>
+                        <div class="card-title">Engine Status</div>
+                        <div class="card-status" :class="engineStatusClass">
+                            <span x-text="engineStatus"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="metrics-grid">
+                    <div class="metric">
+                        <div class="metric-name">Uptime</div>
+                        <div class="metric-value" x-text="formatUptime(engineUptime)"></div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-name">Repositories</div>
+                        <div class="metric-value" x-text="repositoryCount"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="status-card repositories" x-show="repositoryStatus">
+                <div class="card-header">
+                    <div class="card-icon">📁</div>
+                    <div>
+                        <div class="card-title">Repository Manager</div>
+                        <div class="card-status" :class="repositoryStatusClass">
+                            <span x-text="repositoryStatus"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="metrics-grid">
+                    <div class="metric">
+                        <div class="metric-name">Total Repos</div>
+                        <div class="metric-value" x-text="totalRepositories"></div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-name">Last Scan</div>
+                        <div class="metric-value" x-text="formatTime(lastScan)"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="status-card ai" x-show="aiStatus">
+                <div class="card-header">
+                    <div class="card-icon">🤖</div>
+                    <div>
+                        <div class="card-title">AI Services</div>
+                        <div class="card-status" :class="aiStatusClass">
+                            <span x-text="aiStatus"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="metrics-grid">
+                    <div class="metric">
+                        <div class="metric-name">Analyses</div>
+                        <div class="metric-value" x-text="aiAnalyses"></div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-name">Success Rate</div>
+                        <div class="metric-value" x-text="aiSuccessRate + '%'"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="status-card workflows" x-show="workflowStatus">
+                <div class="card-header">
+                    <div class="card-icon">⚡</div>
+                    <div>
+                        <div class="card-title">Workflow Manager</div>
+                        <div class="card-status" :class="workflowStatusClass">
+                            <span x-text="workflowStatus"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="metrics-grid">
+                    <div class="metric">
+                        <div class="metric-name">Active Workflows</div>
+                        <div class="metric-value" x-text="activeWorkflows"></div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-name">Completed Today</div>
+                        <div class="metric-value" x-text="completedWorkflows"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="logs" x-show="logs.length > 0">
+            <h3 style="margin-bottom: 1rem; color: #e2e8f0;">Recent Activity</h3>
+            <div x-show="logs.length === 0" style="text-align: center; color: #a0aec0;">
+                No recent activity
+            </div>
+            <template x-for="log in logs.slice(-20)" :key="log.id">
+                <div class="log-entry">
+                    <span class="log-time" x-text="formatTime(log.timestamp)"></span>
+                    <span class="log-level" :class="log.level" x-text="log.level.toUpperCase()"></span>
+                    <span x-text="log.message"></span>
+                </div>
+            </template>
+        </div>
+    </div>
+
+    <script>
+        function dashboard() {
+            return {
+                loading: false,
+                running: false,
+
+                // Status data
+                engineStatus: 'stopped',
+                engineStatusClass: 'status-stopped',
+                engineUptime: 0,
+
+                repositoryStatus: 'not_initialized',
+                repositoryStatusClass: 'status-stopped',
+                repositoryCount: 0,
+                totalRepositories: 0,
+                lastScan: null,
+
+                aiStatus: 'not_initialized',
+                aiStatusClass: 'status-stopped',
+                aiAnalyses: 0,
+                aiSuccessRate: 0,
+
+                workflowStatus: 'not_initialized',
+                workflowStatusClass: 'status-stopped',
+                activeWorkflows: 0,
+                completedWorkflows: 0,
+
+                logs: [],
+
+                async startEngine() {
+                    this.loading = true
+                    try {
+                        const response = await fetch('/api/engine/start', { method: 'POST' })
+                        const data = await response.json()
+
+                        if (data.success) {
+                            this.running = true
+                            this.engineStatus = 'running'
+                            this.engineStatusClass = 'status-healthy'
+                            this.addLog('info', 'Engine started successfully')
+                        } else {
+                            throw new Error(data.error)
+                        }
+                    } catch (error) {
+                        this.addLog('error', `Failed to start engine: ${error.message}`)
+                    }
+                    this.loading = false
+                },
+
+                async stopEngine() {
+                    this.loading = true
+                    try {
+                        const response = await fetch('/api/engine/stop', { method: 'POST' })
+                        const data = await response.json()
+
+                        if (data.success) {
+                            this.running = false
+                            this.engineStatus = 'stopped'
+                            this.engineStatusClass = 'status-stopped'
+                            this.addLog('info', 'Engine stopped successfully')
+                        } else {
+                            throw new Error(data.error)
+                        }
+                    } catch (error) {
+                        this.addLog('error', `Failed to stop engine: ${error.message}`)
+                    }
+                    this.loading = false
+                },
+
+                async refreshData() {
+                    await this.loadStatus()
+                    await this.loadLogs()
+                },
+
+                async loadStatus() {
+                    try {
+                        const response = await fetch('/api/status')
+                        const data = await response.json()
+
+                        // Update engine status
+                        if (data.engine) {
+                            this.engineStatus = data.engine.status
+                            this.engineStatusClass = data.engine.status === 'healthy' ? 'status-healthy' : 'status-stopped'
+                            this.engineUptime = data.engine.uptime || 0
+                        }
+
+                        // Update repository status
+                        if (data.repositories) {
+                            this.repositoryStatus = data.repositories.status
+                            this.repositoryStatusClass = data.repositories.status === 'healthy' ? 'status-healthy' : 'status-stopped'
+                            this.repositoryCount = data.repositories.repositories?.total || 0
+                            this.totalRepositories = data.repositories.repositories?.total || 0
+                            this.lastScan = data.repositories.repositories?.lastScan || null
+                        }
+
+                        // Update AI status
+                        if (data.ai) {
+                            this.aiStatus = data.ai.status
+                            this.aiStatusClass = data.ai.status === 'healthy' ? 'status-healthy' : 'status-stopped'
+                        }
+
+                        // Update workflow status
+                        if (data.workflows) {
+                            this.workflowStatus = data.workflows.status
+                            this.workflowStatusClass = data.workflows.status === 'healthy' ? 'status-healthy' : 'status-stopped'
+                            this.activeWorkflows = data.workflows.workflows?.running || 0
+                            this.completedWorkflows = data.workflows.workflows?.running || 0
+                        }
+
+                    } catch (error) {
+                        console.error('Failed to load status:', error)
+                    }
+                },
+
+                async loadLogs() {
+                    try {
+                        const response = await fetch('/api/logs')
+                        const data = await response.json()
+                        this.logs = data.logs || []
+                    } catch (error) {
+                        console.error('Failed to load logs:', error)
+                    }
+                },
+
+                addLog(level, message) {
+                    this.logs.push({
+                        id: Date.now(),
+                        level,
+                        message,
+                        timestamp: new Date()
+                    })
+                },
+
+                formatUptime(ms) {
+                    if (ms === 0) return '0s'
+                    const seconds = Math.floor(ms / 1000)
+                    const minutes = Math.floor(seconds / 60)
+                    const hours = Math.floor(minutes / 60)
+
+                    if (hours > 0) return `${hours}h ${minutes % 60}m`
+                    if (minutes > 0) return `${minutes}m ${seconds % 60}s`
+                    return `${seconds}s`
+                },
+
+                formatTime(date) {
+                    if (!date) return 'Never'
+                    return new Date(date).toLocaleTimeString()
+                },
+
+                async init() {
+                    await this.loadStatus()
+                    await this.loadLogs()
+
+                    // Auto-refresh every 30 seconds
+                    setInterval(() => {
+                        if (this.running) {
+                            this.loadStatus()
+                        }
+                    }, 30000)
+                }
+            }
+        }
+
+        // Initialize the dashboard when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            // Access the Alpine.js component and call init
+            const dashboardElement = document.querySelector('[x-data="dashboard()"]')
+            if (dashboardElement && dashboardElement._x_dataStack) {
+                dashboardElement._x_dataStack[0].init()
+            }
+        })
+    </script>
+</body>
+</html>

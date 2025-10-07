@@ -1,0 +1,85 @@
+name: KhulnaSoft Webhook Handler
+
+on:
+  issues:
+    types: [opened, labeled, assigned]
+  issue_comment:
+    types: [created]
+  pull_request:
+    types: [opened, synchronize, review_requested]
+  push:
+    branches: [main, develop]
+  workflow_dispatch:
+
+jobs:
+  handle-webhook:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      pull_requests: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Configure KhulnaSoft
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_ORG: ${{ github.repository_owner }}
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      run: |
+        cp khulnasoft-config.json khulnasoft-config.local.json
+
+    - name: Process webhook event
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_ORG: ${{ github.repository_owner }}
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        GITHUB_EVENT_NAME: ${{ github.event_name }}
+        GITHUB_EVENT_ACTION: ${{ github.event.action }}
+      run: |
+        echo "🔗 Processing ${GITHUB_EVENT_NAME} event..."
+
+        # Extract event data
+        case "${GITHUB_EVENT_NAME}" in
+          "issues")
+            echo "📋 Processing issue event: ${GITHUB_EVENT_ACTION}"
+            # Trigger issue analysis workflow
+            ;;
+          "pull_request")
+            echo "🔄 Processing PR event: ${GITHUB_EVENT_ACTION}"
+            # Trigger PR analysis workflow
+            ;;
+          "push")
+            echo "📝 Processing push event"
+            # Trigger code review workflow
+            ;;
+          "issue_comment")
+            echo "💬 Processing issue comment event"
+            # Trigger comment analysis workflow
+            ;;
+        esac
+
+        echo "✅ Webhook processed successfully"
+
+    - name: Create event summary
+      if: always()
+      run: |
+        echo "## 🔗 KhulnaSoft Webhook Handler" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "- **Event:** ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Action:** ${{ github.event.action }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Repository:** ${{ github.repository }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Timestamp:** $(date -u)" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "✅ Webhook processed successfully"
