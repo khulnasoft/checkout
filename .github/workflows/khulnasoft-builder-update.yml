@@ -1,0 +1,83 @@
+name: KhulnaSoft Builder Update
+
+on:
+  schedule:
+    # Run every 4 hours
+    - cron: '0 */4 * * *'
+  workflow_dispatch: # Allow manual triggering
+    inputs:
+      repositories:
+        description: 'Comma-separated list of repositories to build (leave empty for all)'
+        required: false
+        type: string
+      force_build:
+        description: 'Force build all repositories regardless of changes'
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: khulnasoft-builder-update-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  trigger-builds:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: package-lock.json
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Configure KhulnaSoft
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_ORG: ${{ github.repository_owner }}
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      run: |
+        cp khulnasoft-config.json khulnasoft-config.local.json
+
+    - name: Run builder update workflow
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_ORG: ${{ github.repository_owner }}
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        FORCE_BUILD: ${{ github.event.inputs.force_build || 'false' }}
+      run: |
+        node .github/workflow_scripts/trigger-builder-update.ts
+
+    - name: Create build report
+      if: always()
+      run: |
+        echo "## Builder Update Report" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        if [ -f "build-results.json" ]; then
+          echo "Build trigger completed successfully." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📊 **Summary:**" >> $GITHUB_STEP_SUMMARY
+          echo "- Check artifacts for detailed build results" >> $GITHUB_STEP_SUMMARY
+          echo "- Monitor triggered workflows in Actions tab" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "Build trigger completed with issues. Check logs for details." >> $GITHUB_STEP_SUMMARY
+        fi
+
+    - name: Upload build results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: builder-update-results
+        path: |
+          build-results.json
+        retention-days: 7

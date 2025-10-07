@@ -1,0 +1,66 @@
+{
+  "engine": {
+    "name": "KhulnaSoft Development Space Engine",
+    "version": "1.0.0",
+    "environment": "development",
+    "logLevel": "info"
+  },
+  "github": {
+    "organization": "KhulnaSoft",
+    "apiUrl": "https://api.github.com",
+    "webhookSecret": ""
+  },
+  "ai": {
+    "provider": "openai",
+    "model": "gpt-4",
+    "temperature": 0.7,
+    "maxTokens": 2000,
+    "services": {
+      "codeReview": {
+        "enabled": true,
+        "autoReview": false,
+        "minConfidence": 0.8
+      },
+      "issueAnalysis": {
+        "enabled": true,
+        "autoLabel": true,
+        "autoAssign": false
+      },
+      "prAnalysis": {
+        "enabled": true,
+        "autoMerge": false,
+        "requiredReviews": 1
+      }
+    }
+  },
+  "repositories": {
+    "managedRepos": [],
+    "ignoredRepos": [],
+    "scanInterval": 300000,
+    "autoDiscover": true
+  },
+  "workflows": {
+    "enabled": true,
+    "maxConcurrency": 5,
+    "timeout": 300000,
+    "retryAttempts": 3
+  },
+  "monitoring": {
+    "enabled": true,
+    "metricsInterval": 60000,
+    "healthCheckInterval": 300000,
+    "alertThresholds": {
+      "errorRate": 0.05,
+      "responseTime": 10000
+    }
+  },
+  "storage": {
+    "type": "filesystem",
+    "path": "./data",
+    "backup": {
+      "enabled": true,
+      "interval": 86400000,
+      "retention": 30
+    }
+  }
+}

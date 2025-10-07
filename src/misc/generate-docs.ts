@@ -1,13 +1,40 @@
-import * as fs from 'fs'
-import * as os from 'os'
-import * as path from 'path'
-import * as yaml from 'js-yaml'
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import * as url from 'node:url';
+import * as yaml from 'js-yaml';
 
-//
-// SUMMARY
-//
-// This script rebuilds the usage section in the README.md to be consistent with the action.yml
+type ActionYaml = {
+  name: string;
+  description: string;
+  inputs?: Record<
+    string,
+    {
+      description: string;
+      required?: boolean;
+      default?: string | number | boolean;
+    }
+  >;
+  outputs?: Record<
+    string,
+    {
+      description: string;
+    }
+  >;
+  runs: {
+    using: string;
+    main: string;
+  };
+};
 
+/**
+ * Updates the usage section in the README.md based on the action.yml file
+ * @param actionReference - The GitHub action reference (e.g., 'actions/checkout@v3')
+ * @param actionYamlPath - Path to the action.yml file
+ * @param readmePath - Path to the README.md file
+ * @param startToken - Start token for the usage section
+ * @param endToken - End token for the usage section
+ * @throws {Error} If the action reference is empty or if file operations fail
+ */
 function updateUsage(
   actionReference: string,
   actionYamlPath = 'action.yml',
@@ -15,15 +42,47 @@ function updateUsage(
   startToken = '<!-- start usage -->',
   endToken = '<!-- end usage -->'
 ): void {
-  if (!actionReference) {
-    throw new Error('Parameter actionReference must not be empty')
+  if (!actionReference?.trim()) {
+    throw new Error('Parameter actionReference must not be empty');
   }
 
-  // Load the action.yml
-  const actionYaml = yaml.safeLoad(fs.readFileSync(actionYamlPath).toString())
+  // Resolve paths relative to the current file's directory
+  const resolvePath = (filePath: string): string => {
+    return path.isAbsolute(filePath)
+      ? filePath
+      : path.resolve(path.dirname(filePath === actionYamlPath ? actionYamlPath : readmePath), filePath);
+  };
+
+  const resolvedActionYamlPath = resolvePath(actionYamlPath);
+  const resolvedReadmePath = resolvePath(readmePath);
+
+  // Ensure files exist
+  [resolvedActionYamlPath, resolvedReadmePath].forEach((filePath) => {
+    if (!fs.existsSync(filePath)) {
+      throw new Error(`File not found: ${filePath}`);
+    }
+  });
+
+  // Load and parse the action.yml
+  let actionYaml: ActionYaml;
+  try {
+    const fileContent = fs.readFileSync(resolvedActionYamlPath, 'utf8');
+    actionYaml = yaml.load(fileContent) as ActionYaml;
+    
+    if (!actionYaml?.name) {
+      throw new Error('Invalid action.yml: Missing required fields');
+    }
+  } catch (error) {
+    throw new Error(`Failed to parse ${resolvedActionYamlPath}: ${error instanceof Error ? error.message : String(error)}`);
+  }
 
   // Load the README
-  const originalReadme = fs.readFileSync(readmePath).toString()
+  let originalReadme: string;
+  try {
+    originalReadme = fs.readFileSync(resolvedReadmePath, 'utf8');
+  } catch (error) {
+    throw new Error(`Failed to read ${resolvedReadmePath}: ${error instanceof Error ? error.message : String(error)}`);
+  }
 
   // Find the start token
   const startTokenIndex = originalReadme.indexOf(startToken)
@@ -120,7 +179,7 @@ function updateUsage(
 }
 
 updateUsage(
-  'actions/checkout@v4',
+  'actions/checkout@v5',
   path.join(__dirname, '..', '..', 'action.yml'),
   path.join(__dirname, '..', '..', 'README.md')
 )

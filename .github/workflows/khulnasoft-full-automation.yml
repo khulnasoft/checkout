@@ -1,0 +1,145 @@
+name: KhulnaSoft Full Automation Suite
+
+on:
+  schedule:
+    # Run comprehensive automation every Saturday at 4 AM UTC
+    - cron: '0 4 * * 6'
+  workflow_dispatch: # Allow manual triggering
+    inputs:
+      run_package_updates:
+        description: 'Run package dependency updates'
+        required: false
+        type: boolean
+        default: true
+      run_repository_sync:
+        description: 'Sync repository configurations and templates'
+        required: false
+        type: boolean
+        default: true
+      run_template_sha:
+        description: 'Update template SHAs for deployments'
+        required: false
+        type: boolean
+        default: true
+      run_builder_update:
+        description: 'Trigger automated builds'
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: khulnasoft-full-automation-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  khulnasoft-automation:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      workflows: write
+      issues: write
+      pull_requests: write
+      actions: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: package-lock.json
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Configure KhulnaSoft
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_ORG: ${{ github.repository_owner }}
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      run: |
+        cp khulnasoft-config.json khulnasoft-config.local.json
+
+    - name: Run package updates
+      if: github.event.inputs.run_package_updates == 'true' || github.event_name == 'schedule'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_ORG: ${{ github.repository_owner }}
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      run: |
+        echo "🔄 Running package dependency updates..."
+        node .github/workflow_scripts/update-package.ts
+
+    - name: Run repository sync
+      if: github.event.inputs.run_repository_sync == 'true' || github.event_name == 'schedule'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_ORG: ${{ github.repository_owner }}
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      run: |
+        echo "🔄 Running repository synchronization..."
+        node .github/workflow_scripts/sync-repo.ts
+
+    - name: Update template SHAs
+      if: github.event.inputs.run_template_sha == 'true' || github.event_name == 'schedule'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_ORG: ${{ github.repository_owner }}
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      run: |
+        echo "🔍 Updating template SHAs..."
+        node .github/workflow_scripts/get-entry-server-template-shas.ts
+
+    - name: Trigger builder updates
+      if: github.event.inputs.run_builder_update == 'true'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_ORG: ${{ github.repository_owner }}
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      run: |
+        echo "🏗️ Triggering automated builds..."
+        node .github/workflow_scripts/trigger-builder-update.ts
+
+    - name: Generate automation report
+      if: always()
+      run: |
+        echo "## 🚀 KhulnaSoft Automation Suite Report" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 📊 Execution Summary" >> $GITHUB_STEP_SUMMARY
+        echo "- **Triggered by:** ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Repository:** ${{ github.repository }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Timestamp:** $(date -u)" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+
+        if [ "${{ github.event.inputs.run_package_updates }}" == "true" ] || [ "${{ github.event_name }}" == "schedule" ]; then
+          echo "✅ **Package Updates:** Executed" >> $GITHUB_STEP_SUMMARY
+        fi
+        if [ "${{ github.event.inputs.run_repository_sync }}" == "true" ] || [ "${{ github.event_name }}" == "schedule" ]; then
+          echo "✅ **Repository Sync:** Executed" >> $GITHUB_STEP_SUMMARY
+        fi
+        if [ "${{ github.event.inputs.run_template_sha }}" == "true" ] || [ "${{ github.event_name }}" == "schedule" ]; then
+          echo "✅ **Template SHA Update:** Executed" >> $GITHUB_STEP_SUMMARY
+        fi
+        if [ "${{ github.event.inputs.run_builder_update }}" == "true" ]; then
+          echo "✅ **Builder Update:** Executed" >> $GITHUB_STEP_SUMMARY
+        fi
+
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 📋 Next Steps" >> $GITHUB_STEP_SUMMARY
+        echo "- Monitor individual workflow results in Actions tab" >> $GITHUB_STEP_SUMMARY
+        echo "- Check uploaded artifacts for detailed reports" >> $GITHUB_STEP_SUMMARY
+        echo "- Review any created PRs for dependency updates" >> $GITHUB_STEP_SUMMARY
+
+    - name: Upload automation results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: khulnasoft-automation-results-${{ github.run_id }}
+        path: |
+          *-results.json
+        retention-days: 14
