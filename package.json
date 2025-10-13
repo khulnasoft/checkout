@@ -65,7 +65,7 @@
     "@vercel/ncc": "^0.38.4",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^9.1.0",
-    "eslint-plugin-github": "^4.10.2",
+    "eslint-plugin-github": "^6.0.0",
     "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-jest": "^28.8.2",
     "eslint-plugin-jsdoc": "^48.2.1",
