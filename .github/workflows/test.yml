@@ -30,7 +30,7 @@ jobs:
           node-version: 24.x
           cache: npm
           cache-dependency-path: package-lock.json
-      - uses: actions/checkout@v4.1.6
+      - uses: actions/checkout@v5
       - run: npm ci
       - run: npm run build
       - run: npm run format:check
@@ -48,7 +48,7 @@ jobs:
     steps:
       # Clone this repo
       - name: Checkout
-        uses: actions/checkout@v4.1.6
+        uses: actions/checkout@v5
 
       # Basic checkout
       - name: Checkout basic
@@ -213,7 +213,7 @@ jobs:
     steps:
       # Clone this repo
       - name: Checkout
-        uses: actions/checkout@v4.1.6
+        uses: actions/checkout@v5
 
       # Basic checkout using git
       - name: Checkout basic
@@ -245,7 +245,7 @@ jobs:
     steps:
       # Clone this repo
       - name: Checkout
-        uses: actions/checkout@v4.1.6
+        uses: actions/checkout@v5
 
       # Basic checkout using git
       - name: Checkout basic
@@ -275,7 +275,7 @@ jobs:
     steps:
       # Clone this repo
       - name: Checkout
-        uses: actions/checkout@v4.1.6
+        uses: actions/checkout@v5
         with:
           path: localClone
 
@@ -303,7 +303,7 @@ jobs:
 
       # needed to make checkout post cleanup succeed
       - name: Fix Checkout v4
-        uses: actions/checkout@v4.1.6
+        uses: actions/checkout@v5
         with:
           path: localClone
 
@@ -312,7 +312,7 @@ jobs:
     steps:
       # Clone this repo
       - name: Checkout
-        uses: actions/checkout@v4.1.6
+        uses: actions/checkout@v5
 
       # Basic checkout using git
       - name: Checkout basic
@@ -339,4 +339,4 @@ jobs:
 
       # needed to make checkout post cleanup succeed
       - name: Fix Checkout
-        uses: actions/checkout@v4.1.6
+        uses: actions/checkout@v5
