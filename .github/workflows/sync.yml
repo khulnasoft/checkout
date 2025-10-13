@@ -19,7 +19,7 @@ jobs:
         with:
           version: 8.10.5
       - name: Sync Repo
-        uses: actions/github-script@v6
+        uses: actions/github-script@v8
         with:
           script: |
             const script = require('./.github/workflow_scripts/sync-repo.js');
