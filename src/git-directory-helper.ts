@@ -36,7 +36,7 @@ export async function prepareExistingDirectory(
       path.join(repositoryPath, '.git', 'shallow.lock')
     ]
     const lockDir = path.join(repositoryPath, '.git')
-
+    
     for (const file of await fsHelper.readdirRecursive(lockDir)) {
       if (file.endsWith('index.lock') || file.endsWith('shallow.lock')) {
         lockPaths.push(file)
